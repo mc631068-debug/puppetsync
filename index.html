@@ -1,0 +1,752 @@
+<div id="img-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:999999; justify-content:center; align-items:center;">
+    <img id="modal-img" style="max-width:95%; max-height:95%; border-radius:10px;">
+</div><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thăng Long Water Puppet Theatre - Global Audio Guide</title>
+    <style>
+        :root {
+            --royal-red: #d32f2f;
+            --gold: #efbf04;
+            --cream: #fff9eb;
+            --deep-water: #0a0a0a;
+        }
+
+        body {
+            margin: 0; background-color: #000; color: #fff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh; overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%; max-width: 650px; height: 100%; margin: auto;
+            background: linear-gradient(180deg, #220000 0%, #000 100%);
+            position: relative; display: flex; flex-direction: column;
+            border-left: 1px solid #333; border-right: 1px solid #333;
+        }
+
+        .overlay { position: fixed; inset: 0; z-index: 9999; background: radial-gradient(circle, var(--royal-red) 0%, #000 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; }
+
+        #sync-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 99999; display: none; }
+
+        .dragon-logo {
+            font-size: 80px; margin-bottom: 20px;
+            filter: drop-shadow(0 0 20px var(--gold));
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+
+        .progress-container { width: 250px; height: 6px; background: #333; border-radius: 10px; margin: 20px 0; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: var(--gold); transition: width 0.3s; }
+
+        header { padding: 20px; text-align: center; background: #000; border-bottom: 2px solid var(--gold); }
+        header h1 { color: var(--gold); margin: 0; font-size: 1.2rem; letter-spacing: 4px; }
+
+        .viewport { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; }
+        .viewport::-webkit-scrollbar { width: 5px; }
+        .viewport::-webkit-scrollbar-thumb { background: var(--gold); }
+
+        .page { display: none; }
+        .page.active { display: block; }
+
+        /* THE ORIGINAL 10-FACT IMAGE-ON-RIGHT LAYOUT */
+        .fact-card {
+            background: rgba(255,255,255,0.05); border-radius: 12px;
+            padding: 15px; margin-bottom: 15px; border-left: 4px solid var(--gold);
+            display: flex; align-items: center; justify-content: space-between; gap: 15px;
+        }
+        .fact-content { flex: 1; }
+        .fact-content h4 { color: var(--gold); margin: 0 0 5px 0; font-size: 0.9rem; text-transform: uppercase; }
+        .fact-content p { margin: 0; font-size: 0.85rem; line-height: 1.5; color: var(--cream); }
+        .fact-img { width: 90px; height: 90px; border-radius: 8px; object-fit: cover; background: #222; flex-shrink: 0; border: 1px solid #444; }
+
+        #script-feed { padding-bottom: 350px; }
+        .line { font-size: 1.35rem; margin-bottom: 60px; opacity: 0.2; transition: all 0.6s ease; text-align: center; }
+        .line.active { opacity: 1; color: var(--gold); transform: scale(1.05); font-weight: bold; }
+        .stage-note { font-style: italic; color: #5bc0de; margin-bottom: 40px; text-align: center; opacity: 0.5	; font-size: 0.95rem; }
+        .stage-note.active { opacity: 1; }
+
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #111; display: flex; border-top: 1px solid #333; z-index: 999; }
+        .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #666; cursor: pointer; transition: 0.3s; }
+        .nav-btn.active { color: var(--gold); background: #1a1a1a; }
+        .nav-icon { font-size: 24px; margin-bottom: 5px; }
+        .nav-text { font-size: 10px; font-weight: bold; text-transform: uppercase; }
+
+        select, button { padding: 15px; width: 100%; border-radius: 8px; border: none; margin-top: 10px; cursor: pointer; font-weight: bold; font-size: 1rem; }
+        .primary-btn { background: var(--gold); color: #000; text-transform: uppercase; transition: 0.2s; }
+        .primary-btn:hover { background: #ffcc22; }
+	.img-wrapper {
+    position: relative;
+    width: 90px;
+    height: 90px;
+    flex-shrink: 0;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.img-wrapper img {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+/* slight zoom on hover */
+.img-wrapper:hover img {
+    transform: scale(1.05);
+}
+
+.expand-icon {
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    font-size: 12px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    padding: 3px 5px;
+    border-radius: 4px;
+
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease;
+}
+
+/* show on hover (desktop) */
+.img-wrapper:hover .expand-icon {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* ALWAYS slightly visible on mobile */
+@media (hover: none) {
+    .expand-icon {
+        opacity: 0.7;
+        transform: scale(1);
+    }
+}
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div id="splash" class="overlay">
+            <div class="dragon-logo">🐲</div>
+            <h1 style="color: var(--gold); margin-bottom: 40px; letter-spacing: 5px;">WELCOME TO PHƯƠNG NAM WATER PUPPET THEATRE</h1>
+            <select id="lang-picker">
+                <option value="en">English</option>
+                <option value="vn">Tiếng Việt</option>
+                <option value="zh">中文 (简体)</option>
+                <option value="fr">Français</option>
+                <option value="es">Español</option>
+                <option value="de">Deutsch</option>
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+                <option value="it">Italiano</option>
+                <option value="ru">Русский</option>
+            </select>
+            <button class="primary-btn" onclick="enterApp()">Explore Theatre</button>
+        </div>
+
+        <div id="sync-screen" class="overlay">
+            <div class="dragon-logo" style="font-size: 50px;">🐲</div>
+            <h2 id="sync-label" style="color: var(--gold);">CONNECTING...</h2>
+            <div class="progress-container"><div id="sync-progress" class="progress-bar"></div></div>
+            <p id="sync-status" style="font-size: 0.8rem; opacity: 0.7;">Calibrating with live acoustic signals...</p>
+        </div>
+
+        <header><h1 id="app-title">THĂNG LONG</h1></header>
+
+        <div class="viewport" id="scroll-area">
+<div id="home-page" class="page active">
+
+    <!-- ✅ HERO IMAGE -->
+    <img src="https://vietnamdiscovery.com/wp-content/uploads/2019/10/hanoi-water-puppet-show.jpg" style="width:100%; border-radius:10px; margin-bottom:15px;">
+
+
+    <!-- ✅ INTRO CARD -->
+    <div class="fact-card">
+        <div class="fact-card">
+    	    <h4 id="home-intro-title"></h4>
+    	    <p id="home-intro-desc"></p>
+	</div>
+
+	<p id="sound-hint" style="opacity:0.6; font-size:0.8rem; margin-bottom:10px;"></p>
+    </div>
+
+    <!-- ✅ KEEP YOUR EXISTING SYSTEM -->
+    <div id="facts-container"></div>
+
+</div>
+            <div id="trans-page" class="page">
+                <div id="trans-init" style="text-align: center; padding-top: 50px;">
+                    <div class="dragon-logo" style="font-size: 40px;">🎭</div>
+                    <h3 id="ready-msg" style="color: var(--gold);">Performance Sync</h3>
+                    <p style="opacity: 0.8; font-size: 0.9rem; padding: 0 30px;">Sync when the music begins to align the script with the stage.</p>
+                    <button class="primary-btn" onclick="performSync()">Sync with Stage</button>
+                </div>
+                <div id="live-content" style="display: none;"><div id="script-feed"></div></div>
+            </div>
+        </div>
+
+        <nav class="nav-bar">
+            <div class="nav-btn active" id="nav-home" onclick="changeTab('home')"><span class="nav-icon">🏠</span><span class="nav-text" id="label-home">Home</span></div>
+            <div class="nav-btn" id="nav-trans" onclick="changeTab('trans')"><span class="nav-icon">🎧</span><span class="nav-text" id="label-live">Live Script</span></div>
+        </nav>
+    </div>
+
+    <script>
+	let audioUnlocked = false;
+        let currentLang = 'en';
+        const factImgs = [
+            "https://images.openai.com/static-rsc-4/qS2-UPhSDiAdOt5MGTfaHpJVqPDKnzzkSSuforJDk6ay4kTc-ufeq3Xu9sbwdJt6FP2S6FWuqDwpI_Kz0wsjyRhBoTOvbnOtXO6psMYjMWWx3IxPgOdysdHJFG9xcg-bp-VWrE-6smuOl68cVNDnCodxO-tScXmmHghplj4dGGc?purpose=inline",
+            "https://images.openai.com/static-rsc-4/_b45lmkwRNdqnNcOtJpnwD4vVHbE74Y4n5kc8RhvElgoKxMRNwVSa_7ChQl96AyFXEqlvbD39lugppe0vbwLyDOiLrtDSxWSrKieVuwZx4tUtYI51qhoZJiV5lPpQNVuJUOP4p-NNxFhuodFs-OOmo0ZsDPlT4Vqbo9IPEfEUEtGFhXtLRfla7g8q3iyfTkW?purpose=inline",
+			"https://images.openai.com/static-rsc-4/hlPFD8HzLVuWMyZyAGNDcdo3wIeJFlVdU4ZJkrgwQA4hosdNRyRPlFkeYQ5tHIJlAyqQggTAqbc8DHhNFFp6Adr3GUIatR3JRn4KlVe2pFtYmHcm7iXE3foqKzrHFHIeFTcvd-Ux2C4qJ-TjoM3D1WmMfUK0rwPZKy-fO6QgWkCiOdO3XE_-VH_ZyiqitgYi?purpose=inline",
+            "https://images.openai.com/static-rsc-4/hy7dLpOFwhCVr7poi3yEohu7URel8iPDQX8ccP9wGBpM02Mi7RfcnFQiesPTwdJe3MHNiEGgNkoup68cQpIn05kmxc7Mwv1jCc0VIkpqZyKOS9E_ZHian5wavyYYv7I3Crj4jfb1GgYQu-D4Esh1sRAYs8IM2ekzv2mvjUxNzH0?purpose=inline",
+            "https://images.openai.com/static-rsc-4/E-oFRnVBLvbH9WoLhTxMkLfe9Ut9bc2V_fmstXywDK2xvkubtrUgjlaRoOML09J3SenFjB4FEK5V7IUeRFcmTzcwloTiM-XsM-qvAWMcYDMjqcH3u-B-hpJtBQa1YOMsKHq9evKPWbqFW8df-P91YLQJAerYoMwkB2Km4CLZzQ4?purpose=inline",
+            "https://images.openai.com/static-rsc-4/QXC3Zltuu-M_JRZ-_4UodjQ0g_r-tr2c_RkGco-8KdJMl3B5OG44odjEU98InBMNTaAtswZPFxdmh8wZ9bOan_OMFOtuIg8CqGJ-sU4vsx-LEDdJSGTpiy_YrCjrvAz6iKeZs5m6E7SfqjpDXlu4zBLt-wV1MfjvJluU1-3CRUU?purpose=inline",
+            "https://imagevietnam.vnanet.vn//MediaUpload/Org/2023/03/23/423-9-44-35.jpg",
+            "https://images.openai.com/static-rsc-4/78rNJrmX1q_6xj6gM2Crp04lHRmst9iOuCUBqvi8qlhlj5Wt234au3LAWVojOZekp9AyKgvIps6SJNISPcWswl4KrK9-m91AoDHYXWHUkNFpb8BtlvgySxKe8cPgSaEPLjdUBUCSWPCLRmub7h2syH60MSFnvXbEeZ3hZXV5Yvg?purpose=inline",
+            "https://images.openai.com/static-rsc-4/HyOvouac9L9Ir87LqQoD9KDNCnednT5jrRkjEPnWBRvDFzYXbnnuuech2wt-h4_T6mg9caPOjkz_r8mNzpdScKpjlYmF7V520fJwsMGZBlrTogxeMZRyvpIW_vpPY5Wq6ghqj-dyBQl7-gb0BsqM9voEe-SfeL6IrPomEkvDqX0?purpose=inline",
+            "https://images.openai.com/static-rsc-4/bRipU-SCSpLoh1rkey7qbuteMv6PZZdpTmnK4-HwFD8pgTL3rarefEVLhcVoL0WqlZugWg1N7gVUxeQObCmmK1K5TDFMOqX7KR8IGUQPAp6PUnCmhhPsZApIksioiBRwIPBEN-RtTYdIk1LvovDaegRxVI2Xtxf9gw7QDMkNGjs?purpose=inline"
+        ];
+
+        const langData = {
+            en: {
+		homeIntroTitle: "What is Water Puppetry?",
+		homeIntroDesc: "A traditional Vietnamese art form where puppets perform on water, controlled behind the scenes.",
+		soundHint: "Best experienced with sound 🎧",
+
+                home: "HOME", live: "LIVE SCRIPT", sync: "SYNCING...", title: "THĂNG LONG AUDIO",
+                facts: [
+					{t:"1. Water Stage", d:"The water stage serves as both the performance space and a concealment system, set in a shallow pool representing rivers, ponds, or rice fields. At its center stands the Thuy Dinh (water pavilion), which hides the puppeteers. The water conceals rods and strings while enhancing visuals through reflections and movement, allowing puppets to glide, spin, and emerge fluidly."},
+					{t:"2. Hidden Artisans", d:"Puppeteers operate from behind a bamboo screen, standing in water and controlling puppets through an underwater system of rods and strings. Their skill and timing bring lifelike motion to each figure."},
+					{t:"3. Jackfruit Wood", d:"Jackwood (Artocarpus heterophyllus) is the preferred material for water puppetry due to its high durability, lightweight nature, and excellent water resistance. It is notably dimensionally stable, resistant to warping and termite infestation, and possesses a naturally aesthetic bright yellow hue. Furthermore, its fine grain allows for intricate carving, enabling artisans to create puppets with exquisite, fluid details that remain resilient despite continuous exposure to humid environments."},
+					{t:"4. Bamboo Screen", d:"Typically a woven bamboo mat or panel, sturdy enough to hide movement but light enough to blend naturally with the rustic setting. These screens are used to conceal the puppeteer's movements, allowing them to maneuver the puppets discreetly. They are positioned at the front of the water stage, often decorated with motifs and painted to resemble a temple facade."},
+					{t:"5. Traditional Music", d:"Live music performed with traditional drums and string instruments plays a crucial role in the performance, enhancing the storytelling by setting the mood, emphasizing key moments, and guiding the pace of each scene. The rhythms and melodies help convey emotions, signal character actions, and immerse the audience more deeply in the cultural narrative, even without understanding the language."},
+					{t:"6. Folklore Stories", d:"The performances depict traditional Vietnamese folklore, including village legends, scenes of daily rural life, and historical tales. These stories often reflect cultural values, beliefs, and humor, allowing audiences to gain insight into Vietnam’s heritage, social customs, and way of life through engaging and symbolic storytelling."},
+					{t:"7. Hand-Carved Puppets", d:"Each puppet is meticulously carved and hand-painted by skilled artisans, showcasing detailed craftsmanship and traditional techniques. These uniquely designed figures represent different characters and roles, helping to visually convey personality, emotion, and cultural symbolism within the performance."},
+					{t:"8. Lacquer Finish", d:"Each puppet is meticulously carved and hand-painted by skilled artisans, showcasing detailed craftsmanship and traditional techniques. These uniquely designed figures represent different characters and roles, helping to visually convey personality, emotion, and cultural symbolism within the performance."},
+					{t:"9. Group Performance", d:"The show is performed by a team of puppeteers working in close coordination behind the stage, carefully synchronizing movements to control the puppets smoothly. This teamwork allows for complex scenes, dynamic interactions, and seamless storytelling, showcasing both technical skill and collective artistry."},
+					{t:"10. Cultural Heritage", d:"Vietnamese water puppetry is a traditional art form that has been passed down through generations, preserving stories, values, and craftsmanship rooted in rural life. It reflects the country’s history and identity, making each performance not just entertainment but a meaningful expression of Vietnam’s cultural heritage."}
+],
+                script: [
+                    {t:0, s:"[Music rises: drums and strings echo across the water]"},
+                    {t:6, m:"Welcome! How delighted we are to see you attending the show today."},
+                    {t:14, m:"I'm going to talk to you for a few minutes about Vietnamese water puppetry."},
+                    {t:22, m:"Water puppetry is a folk art performance available in Vietnam only. It's associated with the nature, religion, and social life of Vietnam."},
+                    {t:28, m:"The water surface of rice fields, lakes, and pools is the characteristic of the countryside and an inspiration for the coming of water puppetry."},
+                    {t:42, m:"This art form has the water surface as the stage for performance."},
+                    {t:60, s:"[Tiêu presents the program]"},
+                    {t:88, m:"Next, who is this guy? his name is Tiêu. He is a strong, clever, and courteous man."},
+                    {t:110, m:"He is always smiling and having fun. He is singing the prologue, presenting the items of the program, and complaining on the shortcomings of the villagers."},
+                    {t:128, m:"Trần Nhật Minh. Dragon dance. This is a scene of the dragon dance."},
+                    {t:148, m:"Since ancient times, Vietnamese farmers have adored dragons. The dragon is a legendary creature, a symbol of power."},
+                    {t:166, m:"It often shows up on the village lakes and pools to bring peacetime to the villages. This celestial creature likes dancing, flying and hovering overhead."},
+                    {t:236, m:"These stories have lived for generations. Thank you for being here."}
+]
+            },
+            vn: {
+		homeIntroTitle: "Múa rối nước là gì?",
+		homeIntroDesc: "Một loại hình nghệ thuật truyền thống của Việt Nam biểu diễn trên mặt nước.",
+		soundHint: "Trải nghiệm tốt nhất với âm thanh 🎧",
+
+                home: "TRANG CHỦ", live: "BẢN DỊCH", sync: "ĐANG ĐỒNG BỘ...", title: "MÚA RỐI NƯỚC",
+                facts: [
+                    {t:"1. Sân Khấu Nước", d:"Hồ nước nông nơi rối di chuyển trên mặt nước"},
+                    {t:"2. Nghệ Nhân Ẩn Danh", d:"Thanh và dây được dùng để điều khiển rối phía sau"},
+					{t:"3. Gỗ Sung", d:"Vật liệu làm rối vì nhẹ và chịu nước tốt"},
+                    {t:"4. Màn Tre", d:"Che nghệ nhân và tạo hiệu ứng huyền bí"},
+                    {t:"5. Âm Nhạc Truyền Thống", d:"Âm nhạc trực tiếp làm tăng cảm xúc câu chuyện"},
+                    {t:"6. Truyện Dân Gian", d:"Kể về đời sống và truyền thuyết"},
+                    {t:"7. Rối Chạm Khắc", d:"Được làm thủ công bởi nghệ nhân"},
+                    {t:"8. Sơn Phủ", d:"Lớp sơn bảo vệ và tạo độ bóng"},
+                    {t:"9. Diễn Dưới Nước", d:"Nghệ nhân đứng dưới nước điều khiển rối"},
+                    {t:"10. Di Sản Văn Hóa", d:"Nghệ thuật truyền thống qua nhiều thế hệ"}
+],
+                script: [
+    				{t:0, s:"[Âm nhạc nổi lên: trống và đàn vang trên mặt nước]"},
+    				{t:6, m:"Chào mừng quý vị! Rất vui mừng được chào đón quý vị đến tham dự buổi biểu diễn hôm nay."},
+				    {t:14, m:"Tôi sẽ dành ít phút để giới thiệu về múa rối nước Việt Nam."},
+				    {t:22, m:"Múa rối nước là một loại hình nghệ thuật dân gian chỉ có tại Việt Nam. Nó gắn liền với thiên nhiên, tôn giáo và đời sống xã hội."},
+				    {t:28, m:"Mặt nước của ruộng lúa, hồ và ao là đặc trưng của nông thôn và là nguồn cảm hứng cho sự ra đời của múa rối nước."},
+				    {t:42, m:"Loại hình nghệ thuật này lấy mặt nước làm sân khấu biểu diễn."},
+				    {t:60, s:"[Tiêu giới thiệu chương trình]"},
+				    {t:88, m:"Tiếp theo, người này là ai? Tên anh ấy là Tiêu. Anh là người mạnh mẽ, thông minh và lịch thiệp."},
+				    {t:110, m:"Anh luôn mỉm cười và vui vẻ. Anh hát lời mở đầu, giới thiệu các tiết mục và phàn nàn về những thói hư của dân làng."},
+				    {t:128, m:"Trần Nhật Minh. Múa rồng. Đây là một cảnh múa rồng."},
+				    {t:148, m:"Từ xa xưa, người nông dân Việt Nam đã tôn thờ rồng. Rồng là sinh vật huyền thoại, biểu tượng của sức mạnh."},
+				    {t:166, m:"Nó thường xuất hiện trên hồ làng để mang lại hòa bình. Sinh vật này thích nhảy múa và bay lượn."},
+				    {t:236, m:"Những câu chuyện này đã tồn tại qua nhiều thế hệ. Cảm ơn bạn đã đến."}
+]
+            },
+            zh: {
+		homeIntroTitle: "什么是水上木偶戏？",
+		homeIntroDesc: "一种越南传统艺术形式，木偶在水面上表演，由幕后操控。",
+		soundHint: "建议开启声音体验 🎧",
+
+                home: "首页", live: "同步剧本", sync: "同步中...", title: "升龙水上木偶",
+                facts: [
+                    {t:"1. 水上舞台", d:"浅水表演区让木偶滑动"},
+                    {t:"2. 隐藏的工匠", d:"通过杆和绳控制木偶"},
+					{t:"3. 无花果木", d:"轻便且防水的木偶材料"},
+                    {t:"4. 竹帘", d:"遮挡表演者并营造神秘感"},
+                    {t:"5. 传统音乐", d:"现场音乐增强表现力"},
+                    {t:"6. 民间故事", d:"讲述生活与传说"},
+                    {t:"7. 手工木偶", d:"由工匠手工制作"},
+                    {t:"8. 漆面涂层", d:"保护并增加光泽"},
+                    {t:"9. 水中表演", d:"表演者站在水中操控"},
+                    {t:"10. 文化遗产", d:"世代相传的艺术"}
+],
+                script: [
+    				{t:0, s:"[音乐响起：鼓声与弦乐回荡在水面]"},
+ 			   		{t:6, m:"欢迎！很高兴看到您今天来观看演出。"},
+ 			   		{t:14, m:"我将用几分钟为您介绍越南水上木偶戏。"},
+			    	{t:22, m:"水上木偶戏是越南独有的民间艺术，与自然、宗教和社会生活密切相关。"},
+ 			   		{t:28, m:"稻田、湖泊和池塘的水面是农村的象征，也是其灵感来源。"},
+  			  		{t:42, m:"这种艺术形式以水面作为舞台。"},
+			    	{t:60, s:"[Tiêu 介绍节目]"},
+			    	{t:88, m:"接下来，这是谁？他的名字叫 Tiêu。他强壮、聪明而有礼貌。"},
+			    	{t:110, m:"他总是面带微笑，充满活力。他唱序幕，介绍节目，并抱怨村民的缺点。"},
+			    	{t:128, m:"陈日明。舞龙。这是舞龙的场景。"},
+ 			   		{t:148, m:"自古以来，越南农民崇拜龙。龙是力量的象征。"},
+    				{t:166, m:"它常出现在湖泊中，为村庄带来和平，并在空中飞舞。"},
+    				{t:236, m:"这些故事世代相传。感谢您的到来。"}
+]
+            },
+            fr: {
+		homeIntroTitle: "Qu'est-ce que le théâtre de marionnettes sur l’eau ?",
+		homeIntroDesc: "Une forme d’art traditionnelle vietnamienne où les marionnettes se produisent sur l’eau, contrôlées en coulisses.",
+		soundHint: "Meilleure expérience avec le son 🎧",
+
+                home: "ACCUEIL", live: "DIRECT", sync: "SYNCHRO...", title: "MARIONNETTES",
+                facts: [
+                    {t:"1. Scène d’Eau", d:"Bassin peu profond pour les marionnettes"},
+                    {t:"2. Artisans Cachés", d:"Tiges et fils contrôlent les mouvements"},
+                    {t:"3. Bois de Figuier", d:"Matériau léger et résistant à l’eau"},
+                    {t:"4. Rideau en bambou", d:"Cache les artistes et crée du mystère"},
+                    {t:"5. Musique Traditionnelle", d:"Musique live qui enrichit l’histoire"},
+                    {t:"6. Histoires Folkloriques", d:"Récits de vie et légendes"},
+                    {t:"7. Marionnettes Sculptées", d:"Fabriquées à la main"},
+                    {t:"8. Finition Laquée", d:"Protège et donne de la brillance"},
+                    {t:"9. Performance dans l’Eau", d:"Les artistes jouent dans l’eau"},
+                    {t:"10. Patrimoine Culturel", d:"Art transmis entre générations"}
+],
+                script: [
+    				{t:0, s:"[La musique monte : tambours et cordes résonnent sur l’eau]"},
+    				{t:6, m:"Bienvenue ! Nous sommes ravis de vous voir assister au spectacle aujourd’hui."},
+					{t:14, m:"Je vais vous parler pendant quelques minutes de la marionnette sur l’eau vietnamienne."},
+			    	{t:22, m:"C’est un art traditionnel unique au Vietnam, lié à la nature, à la religion et à la société."},
+ 			    	{t:28, m:"La surface de l’eau des rizières et des étangs est une source d’inspiration."},
+			    	{t:42, m:"L’eau sert de scène pour les performances."},
+			    	{t:60, s:"[Tiêu présente le programme]"},
+			    	{t:88, m:"Ensuite, qui est cet homme ? Il s’appelle Tiêu, fort, intelligent et courtois."},
+			    	{t:110, m:"Toujours souriant, il chante le prologue et présente les numéros."},
+			    	{t:128, m:"Trần Nhật Minh. Danse du dragon."},
+			    	{t:148, m:"Depuis l’antiquité, les Vietnamiens vénèrent les dragons."},
+			    	{t:166, m:"Ils apparaissent pour apporter la paix et dansent dans le ciel."},
+			    	{t:236, m:"Ces histoires traversent les générations. Merci."}
+]
+            },
+            es: {
+		homeIntroTitle: "¿Qué es el teatro de marionetas acuáticas?",
+		homeIntroDesc: "Una forma de arte tradicional vietnamita donde las marionetas actúan sobre el agua, controladas detrás del escenario.",
+		soundHint: "Se recomienda usar sonido 🎧",
+
+                home: "INICIO", live: "GUIÓN", sync: "SINCRO...", title: "MARIONETAS",
+                facts: [
+                    {t:"1. Escenario de Agua", d:"Piscina poco profunda para marionetas"},
+                    {t:"2. Artesanos Ocultos", d:"Control con varillas y cuerdas"},
+                    {t:"3. Madera de Higuera", d:"Material ligero y resistente al agua"},
+                    {t:"4. Cortina de bambú", d:"Oculta a los artistas"},
+                    {t:"5. Música Tradicional", d:"Música en vivo mejora la historia"},
+                    {t:"6. Historias Folclóricas", d:"Relatos de vida y tradición"},
+                    {t:"7. Marionetas Talladas", d:"Hechas a mano"},
+                    {t:"8. Acabado Lacado", d:"Protege y da brillo"},
+                    {t:"9. Actuación en el Agua", d:"Artistas actúan en el agua"},
+                    {t:"10. Patrimonio Cultural", d:"Tradición transmitida"}
+],
+                script: [
+    				{t:0, s:"[La música sube: tambores y cuerdas resuenan sobre el agua]"},
+    				{t:6, m:"¡Bienvenidos! Nos alegra mucho verlos en el espectáculo de hoy."},
+    				{t:14, m:"Voy a hablarles durante unos minutos sobre las marionetas de agua vietnamitas."},
+    				{t:22, m:"Es un arte tradicional exclusivo de Vietnam, relacionado con la naturaleza, la religión y la vida social."},
+    				{t:28, m:"La superficie del agua de arrozales y estanques inspira este arte."},
+    				{t:42, m:"El agua sirve como escenario para la actuación."},
+    				{t:60, s:"[Tiêu presenta el programa]"},
+    				{t:88, m:"¿Quién es este hombre? Se llama Tiêu. Es fuerte, inteligente y cortés."},
+    				{t:110, m:"Siempre sonríe, canta el prólogo y presenta el programa."},
+   					{t:128, m:"Trần Nhật Minh. Danza del dragón."},
+    				{t:148, m:"Desde la antigüedad, los agricultores vietnamitas veneran a los dragones."},
+    				{t:166, m:"Aparecen en los lagos trayendo paz y volando en el cielo."},
+    				{t:236, m:"Estas historias viven por generaciones. Gracias."}
+]
+            },
+            de: {
+		homeIntroTitle: "Was ist Wasserpuppenspiel?",
+		homeIntroDesc: "Eine traditionelle vietnamesische Kunstform, bei der Puppen auf dem Wasser auftreten und hinter den Kulissen gesteuert werden.",
+		soundHint: "Am besten mit Ton erleben 🎧",
+
+                home: "START", live: "SKRIPT", sync: "SYNC...", title: "WASSERPUPPEN",
+                facts: [
+                    {t:"1. Wasserbühne", d:"Flaches Becken für Figuren"},
+                    {t:"2. Verborgene Handwerker", d:"Steuerung mit Stäben und Schnüren"},
+                    {t:"3. Feigenholz", d:"Leichtes und wasserfestes Material"},
+                    {t:"4. Bambusvorhang", d:"Verbirgt die Spieler"},
+                    {t:"5. Traditionelle Musik", d:"Live-Musik unterstützt die Geschichte"},
+                    {t:"6. Volksgeschichten", d:"Geschichten aus dem Dorfleben"},
+                    {t:"7. Handgeschnitzte Figuren", d:"Von Hand gefertigt"},
+                    {t:"10. Kulturerbe", d:"Über Generationen weitergegeben"}
+],
+                script: [
+    				{t:0, s:"[Musik steigt an: Trommeln und Saiten erklingen über dem Wasser]"},
+    				{t:6, m:"Willkommen! Wir freuen uns, Sie heute hier zu sehen."},
+    				{t:14, m:"Ich werde Ihnen kurz das vietnamesische Wasserpuppenspiel erklären."},
+    				{t:22, m:"Es ist eine traditionelle Kunstform Vietnams, verbunden mit Natur und Gesellschaft."},
+    				{t:28, m:"Die Wasseroberfläche der Reisfelder inspirierte diese Kunst."},
+    				{t:42, m:"Das Wasser dient als Bühne."},
+    				{t:60, s:"[Tiêu stellt das Programm vor]"},
+    				{t:88, m:"Wer ist dieser Mann? Sein Name ist Tiêu. Er ist stark und klug."},
+    				{t:110, m:"Er lächelt immer und präsentiert das Programm."},
+    				{t:128, m:"Trần Nhật Minh. Drachentanz."},
+    				{t:148, m:"Seit jeher verehren Vietnamesen Drachen."},
+    				{t:166, m:"Sie erscheinen auf Seen und bringen Frieden."},
+    				{t:236, m:"Diese Geschichten leben weiter. Danke."}
+]
+            },
+            ja: {
+		homeIntroTitle: "水上人形劇とは？",
+		homeIntroDesc: "水面上で人形が演じられる、ベトナムの伝統的な芸術形式で、舞台裏から操作されます。",
+		soundHint: "音声ありでの体験がおすすめです 🎧",
+
+                home: "ホーム", live: "台本", sync: "同期中...", title: "水上人形劇",
+                facts: [
+                    {t:"1. 水上舞台", d:"浅い水で人形が動く"},
+                    {t:"2. 隠れた職人", d:"棒と糸で操作"},
+					{t:"3. イチジクの木", d:"軽くて水に強い素材"},
+                    {t:"4. 竹の幕", d:"操作者を隠す"},
+                    {t:"5. 伝統音楽", d:"音楽が雰囲気を作る"},
+                    {t:"6. 民話", d:"生活や伝説の物語"},
+                    {t:"7. 手彫り人形", d:"職人が制作"},
+                    {t:"8. 漆仕上げ", d:"保護と光沢"},
+                    {t:"9. 水中での演技", d:"水の中で操作"},
+                    {t:"10. 文化遺産", d:"伝統的な芸術"}
+],
+                script: [
+    				{t:0, s:"[音楽が高まる：太鼓と弦の音が水面に響く]"},
+    				{t:6, m:"ようこそ。本日の公演にお越しいただきありがとうございます。"},
+    				{t:14, m:"ベトナムの水上人形劇についてご紹介します。"},
+    				{t:22, m:"これはベトナム特有の伝統芸術で、自然や社会と深く関わっています。"},
+    				{t:28, m:"水田や池の水面がその発想の源です。"},
+    				{t:42, m:"水面が舞台となります。"},
+    				{t:60, s:"[ティエウがプログラムを紹介]"},
+    				{t:88, m:"この人物は誰でしょう？ティエウです。強くて賢い人物です。"},
+    				{t:110, m:"彼は常に笑顔で、プログラムを紹介します。"},
+    				{t:128, m:"チャン・ニャット・ミン。龍の舞。"},
+    				{t:148, m:"古くからベトナムでは龍が崇拝されています。"},
+    				{t:166, m:"龍は平和をもたらし、空を舞います。"},
+    				{t:236, m:"これらの物語は受け継がれています。ありがとうございます。"}
+]
+            },
+            ko: {
+		homeIntroTitle: "수상 인형극이란?",
+		homeIntroDesc: "인형이 물 위에서 공연하는 베트남 전통 예술로, 뒤에서 조종됩니다.",
+		soundHint: "음향과 함께 체험하는 것을 추천합니다 🎧",
+
+                home: "홈", live: "대본", sync: "동기화 중...", title: "수상 인형극",
+                facts: [
+                    {t:"1. 수중 무대", d:"얕은 물 위 무대"},
+                    {t:"2. 숨겨진 장인", d:"막대와 줄로 조작"},
+                    {t:"3. 무화과 나무", d:"가볍고 물에 강함"},
+                    {t:"4. 대나무 커튼", d:"조종자를 숨김"},
+                    {t:"5. 전통 음악", d:"라이브 음악 사용"},
+                    {t:"6. 민속 이야기", d:"생활과 전설 이야기"},
+                    {t:"7. 수공예 인형", d:"장인이 제작"},
+                    {t:"8. 옻칠 마감", d:"보호 및 광택"},
+                    {t:"9. 물속 공연", d:"물속에서 조작"},
+                    {t:"10. 문화 유산", d:"전통 예술"}
+],
+                script: [
+    				{t:0, s:"[음악이 올라가며 물 위에 울려 퍼진다]"},
+    				{t:6, m:"환영합니다! 오늘 공연에 와주셔서 감사합니다."},
+    				{t:14, m:"베트남 수중 인형극에 대해 소개하겠습니다."},
+    				{t:22, m:"이 예술은 베트남의 전통 민속 공연입니다."},
+    				{t:28, m:"논과 호수의 물이 영감이 되었습니다."},
+    				{t:42, m:"물 위가 무대입니다."},
+    				{t:60, s:"[띠에우가 프로그램을 소개]"},
+    				{t:88, m:"이 사람은 누구일까요? 띠에우입니다."},
+    				{t:110, m:"그는 항상 웃으며 공연을 소개합니다."},
+    				{t:128, m:"쩐낫민. 용춤."},
+    				{t:148, m:"베트남에서는 오래전부터 용을 숭배했습니다."},
+    				{t:166, m:"용은 평화를 가져옵니다."},
+    				{t:236, m:"이 이야기는 계속됩니다. 감사합니다."}
+]
+            },
+            it: {
+		homeIntroTitle: "Che cos'è il teatro delle marionette sull’acqua?",
+		homeIntroDesc: "Una forma d’arte tradizionale vietnamita in cui le marionette si esibiscono sull’acqua, controllate dietro le quinte.",
+		soundHint: "Esperienza consigliata con audio 🎧",
+
+                home: "HOME", live: "COPIONE", sync: "SYNC...", title: "MARIONNETTE",
+                facts: [
+                    {t:"1. Palco sull’Acqua", d:"Vasca poco profonda"},
+                    {t:"2. Artigiani Nascosti", d:"Controllo con aste e fili"},
+                    {t:"3. Legno di Fico", d:"Materiale leggero e resistente"},
+                    {t:"4. Tenda di bambù", d:"Nasconde gli artisti"},
+                    {t:"5. Musica Tradizionale", d:"Musica dal vivo"},
+                    {t:"6. Storie Tradizionali", d:"Racconti popolari"},
+                    {t:"7. Marionette Intagliate", d:"Fatte a mano"},
+                    {t:"8. Finitura Laccata", d:"Protegge e lucida"},
+                    {t:"9. Performance nell’Acqua", d:"Artisti nell’acqua"},
+                    {t:"10. Patrimonio Culturale", d:"Arte tramandata"}
+],
+                script: [
+    				{t:0, s:"[La musica cresce: tamburi e archi risuonano sull’acqua]"},
+    				{t:6, m:"Benvenuti! Siamo felici di vedervi qui oggi."},
+    				{t:14, m:"Vi parlerò delle marionette sull’acqua vietnamite."},
+    				{t:22, m:"È un’arte tradizionale unica del Vietnam."},
+    				{t:28, m:"L’acqua delle risaie ha ispirato questa forma d’arte."},
+    				{t:42, m:"L’acqua è il palcoscenico."},
+    				{t:60, s:"[Tiêu presenta il programma]"},
+   			    	{t:88, m:"Chi è questo uomo? È Tiêu."},
+    				{t:110, m:"Sorride sempre e presenta lo spettacolo."},
+    				{t:128, m:"Trần Nhật Minh. Danza del drago."},
+    				{t:148, m:"I vietnamiti venerano i draghi da sempre."},
+    				{t:166, m:"Portano pace e volano nel cielo."},
+    				{t:236, m:"Queste storie continuano. Grazie."}
+]
+            },
+            ru: {
+		homeIntroTitle: "Что такое водный кукольный театр?",
+		homeIntroDesc: "Традиционное вьетнамское искусство, в котором куклы выступают на воде и управляются за кулисами.",
+		soundHint: "Рекомендуется смотреть со звуком 🎧",
+
+                home: "ГЛАВНАЯ", live: "СЦЕНАРИЙ", sync: "СИНХРО...", title: "ТХАНГ ЛОНГ",
+                facts: [
+                    {t:"1. Водная сцена", d:"Неглубокий бассейн для кукол"},
+                    {t:"2. Скрытые мастера", d:"Управление с помощью стержней"},
+                    {t:"3. Дерево инжира", d:"Лёгкий и водостойкий материал"},
+                    {t:"4. Бамбуковый занавес", d:"Скрывает артистов"},
+                    {t:"5. Традиционная музыка", d:"Живая музыка сопровождает шоу"},
+                    {t:"6. Народные истории", d:"Истории и легенды"},
+                    {t:"7. Ручная резьба", d:"Сделано вручную"},
+                    {t:"8. Лаковое покрытие", d:"Защищает и блестит"},
+                    {t:"9. Выступление в воде", d:"Артисты в воде"},
+                    {t:"10. Культурное наследие", d:"Передаётся поколениям"}
+],
+                script: [
+    				{t:0, s:"[Музыка усиливается: барабаны и струны звучат над водой]"},
+    				{t:6, m:"Добро пожаловать! Мы рады видеть вас здесь сегодня."},
+    				{t:14, m:"Я расскажу вам о вьетнамском театре кукол на воде."},
+    				{t:22, m:"Это традиционное искусство Вьетнама."},
+    				{t:28, m:"Вода рисовых полей вдохновила это искусство."},
+    				{t:42, m:"Вода служит сценой."},
+    				{t:60, s:"[Тьеу представляет программу]"},
+    				{t:88, m:"Кто этот человек? Его зовут Тьеу."},
+    				{t:110, m:"Он всегда улыбается и ведет представление."},
+    				{t:128, m:"Чан Нят Минь. Танец дракона."},
+    				{t:148, m:"Дракон — символ силы."},
+    				{t:166, m:"Он приносит мир."},
+    				{t:236, m:"Эти истории живут дальше. Спасибо."}
+]
+            }
+        };
+
+        function enterApp() {
+            currentLang = document.getElementById('lang-picker').value;
+            applyLanguage();
+            document.getElementById('splash').style.display = 'none';
+        }
+
+        function applyLanguage() {
+            const data = langData[currentLang] || langData.en;
+            document.getElementById('app-title').innerText = data.title;
+            document.getElementById('label-home').innerText = data.home;
+            document.getElementById('label-live').innerText = data.live;
+	    document.getElementById('home-intro-title').innerText = data.homeIntroTitle;
+	    document.getElementById('home-intro-desc').innerText = data.homeIntroDesc;
+	    document.getElementById('sound-hint').innerText = data.soundHint;
+
+            const container = document.getElementById('facts-container');
+            container.innerHTML = '';
+
+            data.facts.forEach((f, i) => {
+                container.innerHTML += `
+                    <div class="fact-card">
+                        <div class="fact-content">
+                            <h4>${f.t}</h4>
+                            <p>${f.d}</p>
+                        </div>
+                        <div class="img-wrapper" onclick="expandImg(this.querySelector('img'))">
+    			    <img src="${factImgs[i]}" class="fact-img">
+    			    <span class="expand-icon">⤢</span>
+		    	</div>
+                    </div>`;
+            });
+        }
+
+        function changeTab(tab) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tab + '-page').classList.add('active');
+            document.getElementById('nav-' + tab).classList.add('active');
+        }
+
+        function performSync() {
+	    if (!audioUnlocked) {
+   	        const unlock = new SpeechSynthesisUtterance(" ");
+   	        window.speechSynthesis.speak(unlock);
+                window.speechSynthesis.cancel();
+  	        audioUnlocked = true;
+	    }
+	    const music = document.getElementById('bg-music');
+	    if (music) {
+    		music.volume = 0.3;
+    		music.play().catch(()=>{});
+	    }
+            const syncScreen = document.getElementById('sync-screen');
+            const bar = document.getElementById('sync-progress');
+            const label = document.getElementById('sync-label');
+	    document.querySelector('.nav-bar').style.display = 'none';
+            syncScreen.style.display = 'flex';
+            label.innerText = langData[currentLang].sync;
+
+            let progress = 0;
+            const iv = setInterval(() => {
+                progress += 5;
+                bar.style.width = progress + '%';
+                if (progress >= 100) {
+                    clearInterval(iv);
+                    setTimeout(() => {
+                        syncScreen.style.display = 'none';
+			document.querySelector('.nav-bar').style.display = 'flex';
+			changeTab('trans');
+                        startLiveFeed();
+                    }, 400);
+                }
+            }, 100);
+        }
+
+        function startLiveFeed() {
+			const BASE_VOLUME = 0.3;   // normal music
+			const LOW_VOLUME = 0.08;   // during speech
+			const BOOST_VOLUME = 0.4;  // after speech (slightly louder)
+    document.getElementById('trans-init').style.display = 'none';
+    document.getElementById('live-content').style.display = 'block';
+
+    const feed = document.getElementById('script-feed');
+    feed.innerHTML = '';
+
+    const script = langData[currentLang]?.script || langData.en.script;
+
+    script.forEach((item, index) => {
+        const el = document.createElement('div');
+        el.id = 'line-' + index;
+        el.className = item.s ? 'stage-note' : 'line';
+        el.innerText = item.s || item.m;
+        feed.appendChild(el);
+    });
+
+    const music = document.getElementById('bg-music');
+
+    let fadeInterval;
+
+function fadeTo(target, duration = 300) {
+    if (!music) return;
+
+    clearInterval(fadeInterval);
+
+    const start = music.volume;
+    const change = target - start;
+    const steps = duration / 50;
+    let currentStep = 0;
+
+    fadeInterval = setInterval(() => {
+        currentStep++;
+        music.volume = start + (change * (currentStep / steps));
+
+        if (currentStep >= steps) {
+            music.volume = target;
+            clearInterval(fadeInterval);
+        }
+    }, 50);
+}
+
+    let startTime = Date.now();
+    let spoken = new Set();
+
+    setInterval(() => {
+        let elapsed = (Date.now() - startTime) / 1000;
+
+        script.forEach((item, index) => {
+            if (elapsed >= item.t) {
+                const lineEl = document.getElementById('line-' + index);
+
+                if (lineEl && !lineEl.classList.contains('active')) {
+                    document.querySelectorAll('.line, .stage-note').forEach(l => l.classList.remove('active'));
+                    const lineEl = document.getElementById('line-' + index);
+					lineEl.classList.add('active');
+					lineEl.scrollIntoView({
+    					behavior: 'smooth',
+    					block: 'center'
+					});
+
+                    if (item.m && !spoken.has(index)) {
+                        spoken.add(index);
+
+                        window.speechSynthesis.cancel();
+
+                        let speech = new SpeechSynthesisUtterance(item.m);
+
+                        if (currentLang === 'zh') speech.lang = 'zh-CN';
+                        else if (currentLang === 'vn') speech.lang = 'vi-VN';
+                        else if (currentLang === 'ja') speech.lang = 'ja-JP';
+                        else if (currentLang === 'ko') speech.lang = 'ko-KR';
+                        else speech.lang = currentLang;
+
+                        fadeTo(LOW_VOLUME); // lower during speech
+
+						speech.onend = () => {
+    						fadeTo(BOOST_VOLUME, 400); // slight boost after
+
+    						// return to normal after short time
+    						setTimeout(() => {
+        						fadeTo(BASE_VOLUME, 600);
+    						}, 1200);
+						};
+			};
+
+                        window.speechSynthesis.speak(speech);
+                    }
+                }
+            }
+        });
+
+    }, 500);
+}
+
+
+function expandImg(img) {
+    const modal = document.getElementById('img-modal');
+    const modalImg = document.getElementById('modal-img');
+
+    modalImg.src = img.src;
+    modal.style.display = 'flex';
+}
+
+document.getElementById('img-modal').onclick = function () {
+    this.style.display = 'none';
+};
+
+    </script>
+
+<audio id="bg-music" src="audio/puppet.mp3" loop></audio>
+
+<div id="img-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:999999; justify-content:center; align-items:center;">
+    <img id="modal-img" style="max-width:95%; max-height:95%; border-radius:10px;">
+</div>
+
+</body>
+</html>
